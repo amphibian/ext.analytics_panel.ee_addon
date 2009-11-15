@@ -9,7 +9,7 @@ class Analytics_panel
 {
 	var $settings        = array();
 	var $name            = 'Google Analytics Panel';
-	var $version         = '1.0';
+	var $version         = '1.0.1';
 	var $description     = 'Display your Google Analytics stats on the control panel home page.';
 	var $settings_exist  = 'y';
 	var $docs_url        = 'http://github.com/amphibian/ext.analytics_panel.ee_addon';
@@ -95,7 +95,7 @@ class Analytics_panel
 			$ga_password = $current['password'];
 			
 			$ga = new gapi($ga_email, $ga_password);
-			$ga->requestAccountData();
+			$ga->requestAccountData(1,100);
 			
 			if($ga->getResults())
 			{
@@ -346,7 +346,7 @@ class Analytics_panel
 				$ga_auth_token = $today->getAuthToken();
 				
 				// Get account data so we can store the profile info
-				$today->requestAccountData();
+				$today->requestAccountData(1,100);
 				$profile = array();
 				foreach($today->getResults() as $result)
 				{
