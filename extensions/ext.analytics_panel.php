@@ -9,7 +9,7 @@ class Analytics_panel
 {
 	var $settings        = array();
 	var $name            = 'Google Analytics Panel';
-	var $version         = '1.0.1';
+	var $version         = '1.0.2';
 	var $description     = 'Display your Google Analytics stats on the control panel home page.';
 	var $settings_exist  = 'y';
 	var $docs_url        = 'http://github.com/amphibian/ext.analytics_panel.ee_addon';
@@ -102,7 +102,7 @@ class Analytics_panel
 				$DSP->body .= $DSP->input_select_header('profile');
 				foreach($ga->getResults() as $result)
 				{
-				  $DSP->body .= $DSP->input_select_option($result->getProfileId(), $result, (!empty($current['profile']) && $current['profile'] == $result->getProfileId()) ? 1 : 0);
+				  $DSP->body .= $DSP->input_select_option($result->getProfileId(), $result->getTitle(), (!empty($current['profile']) && $current['profile'] == $result->getProfileId()) ? 1 : 0);
 				}
 			}
 			else
@@ -353,7 +353,7 @@ class Analytics_panel
 					if($result->getProfileId() == $this->settings['profile'])
 					{
 						$profile['id'] = $result->getProfileId();
-						$profile['title'] = $result;
+						$profile['title'] = $result->getTitle();
 						$profile['webid'] = $result->getWebPropertyId();
 					}
 				}
@@ -442,13 +442,13 @@ class Analytics_panel
 	
 	function analytics_avg_pages($pageviews, $visits)
 	{
-		echo ($pageviews && $visits) ? round($pageviews / $visits, 2) : 0;
+		echo ($pageviews > 0 && $visits > 0) ? round($pageviews / $visits, 2) : 0;
 	}
 	
 
 	function analytics_avg_visit($seconds, $visits)
 	{
-		if($seconds && $visits)
+		if($seconds > 0 && $visits > 0)
 		{
 			$avg_secs = $seconds / $visits;
 			// This little snippet by Carson McDonald, from his Analytics Dashboard WP plugin
