@@ -8,8 +8,8 @@ Activate the extension, then visit the Google Analytics Panel settings screen. E
 
 The Google Analytics panel will now be available on the **My Account -> Customize Control Panel -> Control Panel Homepage** screen for each user, and can be set to display in either the left or right column, and ordered just like the default homepage panels.
 
-Now load your home screen, wait for a few seconds (cuz the API is kinda slow), and cry/smile and how un/popular your site is.
+Now load your home screen and cry/smile at how un/popular your site is.
 
 ##Compatibility
 
-Google Analytics Panel has been tested with ExpressionEngine 1.6.8, and **requires PHP 5**.
+Google Analytics Panel is MSM-compatible and has been tested with ExpressionEngine 1.6.8. **Requires PHP 5.**
