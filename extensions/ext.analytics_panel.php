@@ -9,7 +9,7 @@ class Analytics_panel
 {
 	var $settings		= array();
 	var $name			= 'Google Analytics Panel';
-	var $version		= '1.1';
+	var $version		= '1.1.1';
 	var $description	= 'Display your Google Analytics stats on the control panel home page.';
 	var $settings_exist	= 'y';
 	var $docs_url		= 'http://github.com/amphibian/ext.analytics_panel.ee_addon';
