@@ -615,12 +615,14 @@ class Analytics_panel
 		$this->analytics_sparkline($lastmonth->getResults(), 'time');
 		
 		$data['lastmonth']['bounce_rate'] = 
-		round( ($lastmonth->getBounces() / $lastmonth->getEntrances()) * 100, 2 ).'%';
+		($lastmonth->getBounces() > 0 && $lastmonth->getBounces() > 0) ? 
+		round( ($lastmonth->getBounces() / $lastmonth->getEntrances()) * 100, 2 ).'%' : '0%';
 		$data['lastmonth']['bounce_rate_sparkline'] = 
 		$this->analytics_sparkline($lastmonth->getResults(), 'bouncerate');
 		
 		$data['lastmonth']['new_visits'] = 
-		round( ($lastmonth->getNewVisits() / $lastmonth->getVisits()) * 100, 2).'%';					
+		($lastmonth->getNewVisits() > 0 && $lastmonth->getVisits() > 0) ? 
+		round( ($lastmonth->getNewVisits() / $lastmonth->getVisits()) * 100, 2).'%' : '0%';					
 		$data['lastmonth']['new_visits_sparkline'] = 
 		$this->analytics_sparkline($lastmonth->getResults(), 'newvisits');
 
