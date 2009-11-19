@@ -9,7 +9,7 @@ class Analytics_panel
 {
 	var $settings		= array();
 	var $name			= 'Google Analytics Panel';
-	var $version		= '1.1.1';
+	var $version		= '1.1.2';
 	var $description	= 'Display your Google Analytics stats on the control panel home page.';
 	var $settings_exist	= 'y';
 	var $docs_url		= 'http://github.com/amphibian/ext.analytics_panel.ee_addon';
@@ -401,7 +401,7 @@ class Analytics_panel
 	function show_full_control_panel_end($out)
 	{
 		global $EXT, $IN;
-		$out = ($EXT->last_call !== FALSE) ? $EXT->last_call : '';
+		$out = ($EXT->last_call !== FALSE) ? $EXT->last_call : $out;
 		
 		// Only add our styles on the CP home screen
 		if( $IN->GBL('C', 'GET') === FALSE && $IN->GBL('M', 'GET') === FALSE )
