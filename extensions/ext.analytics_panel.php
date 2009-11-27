@@ -9,7 +9,7 @@ class Analytics_panel
 {
 	var $settings		= array();
 	var $name			= 'Google Analytics Panel';
-	var $version		= '1.1.2';
+	var $version		= '1.1.3';
 	var $description	= 'Display your Google Analytics stats on the control panel home page.';
 	var $settings_exist	= 'y';
 	var $docs_url		= 'http://github.com/amphibian/ext.analytics_panel.ee_addon';
@@ -62,6 +62,12 @@ class Analytics_panel
 		$DSP->right_crumb($LANG->line('disable_extension'), BASE.AMP.'C=admin'.AMP.'M=utilities'.AMP.'P=toggle_extension_confirm'.AMP.'which=disable'.AMP.'name='.$IN->GBL('name'));
 		
 		$DSP->body = '';
+		
+		if(isset($_GET['msg']) && $LANG->line($_GET['msg']))
+		{
+			$DSP->body .= $DSP->qdiv('box success', $LANG->line($_GET['msg']));
+		}
+		
 		$DSP->body .= $DSP->form_open(
 			array(
 				'action' => 'C=admin'.AMP.'M=utilities'.AMP.'P=save_extension_settings',
@@ -74,10 +80,23 @@ class Analytics_panel
 		// Open the table
 		$DSP->body .=   $DSP->table('tableBorder', '0', '', '100%');
 		$DSP->body .=   $DSP->tr();
-		$DSP->body .=   $DSP->td('tableHeadingAlt', '', '2');
+		$DSP->body .=   $DSP->td('tableHeading', '', '2');
 		$DSP->body .=   $this->name;
 		$DSP->body .=   $DSP->td_c();
-		$DSP->body .=   $DSP->tr_c();	
+		$DSP->body .=   $DSP->tr_c();
+		
+		// Show instructions if we're all set
+		if($auth && !empty($current['profile']))
+		{
+			$DSP->body .=   $DSP->tr();
+			$DSP->body .=   $DSP->td('', '', '2');
+			$DSP->body .=   '<div class="box" style="border-width: 0 0 1px; margin: 0; padding: 10px;">';
+			$DSP->body .=   $LANG->line('ready_set').' ';
+			$DSP->body .=	$DSP->anchor(BASE.AMP.'C=myaccount'.AMP.'M=homepage'.AMP.'id='.$this->get_user_id(), $LANG->line('configure_homepage'), 'class="defaultBold"');
+			$DSP->body .=   $DSP->div_c();
+			$DSP->body .=   $DSP->td_c();
+			$DSP->body .=   $DSP->tr_c();		
+		}
 			
 		// Create a settings row for the user			
 		$DSP->body .=   $DSP->tr();
@@ -190,7 +209,7 @@ class Analytics_panel
 	
 	function save_settings()
 	{
-		global $DB, $PREFS, $REGX;
+		global $DB, $FNS, $PREFS, $REGX;
 		$site = $PREFS->ini('site_id');
 		
 		// $this->settings doesn't work here, so we use our won function
@@ -239,6 +258,15 @@ class Analytics_panel
 		$data = array('settings' => addslashes(serialize($settings)));
 		$update = $DB->update_string('exp_extensions', $data, "class = 'Analytics_panel'");
 		$DB->query($update);
+		
+		$FNS->redirect(
+			BASE.AMP.'C=admin'.
+			AMP.'M=utilities'.
+			AMP.'P=extension_settings'.
+			AMP.'name=analytics_panel'.
+			AMP.'msg=settings_saved'
+		);
+		exit;
 	}
 	
 	

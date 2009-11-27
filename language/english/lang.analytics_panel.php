@@ -25,5 +25,8 @@ $L = array(
 	'top_referrers' => 'Top Referrers',
 	'more' => 'More...',
 	'viewing_profile' => 'Viewing profile',
-	'full_report' => 'View full report'
+	'full_report' => 'View full report',
+	'settings_saved' => 'Settings Saved!',
+	'ready_set' => 'You can now display your Analytics Panel on the control panel homepage.',
+	'configure_homepage' => 'Configure your homepage.'
 );
