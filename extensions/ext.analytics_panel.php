@@ -9,7 +9,7 @@ class Analytics_panel
 {
 	var $settings		= array();
 	var $name			= 'Google Analytics Panel';
-	var $version		= '1.1.3';
+	var $version		= '1.1.4';
 	var $description	= 'Display your Google Analytics stats on the control panel home page.';
 	var $settings_exist	= 'y';
 	var $docs_url		= 'http://github.com/amphibian/ext.analytics_panel.ee_addon';
@@ -67,7 +67,7 @@ class Analytics_panel
 		{
 			$DSP->body .= $DSP->qdiv('box success', $LANG->line($_GET['msg']));
 		}
-		
+				
 		$DSP->body .= $DSP->form_open(
 			array(
 				'action' => 'C=admin'.AMP.'M=utilities'.AMP.'P=save_extension_settings',
@@ -253,7 +253,7 @@ class Analytics_panel
 			);
 		}
 
-		$settings[$site]['member_groups'] = (isset($_POST['member_groups'])) ? $_POST['member_groups'] : array('1');;
+		$settings[$site]['member_groups'] = (isset($_POST['member_groups'])) ? $_POST['member_groups'] : array('1');
 		
 		$data = array('settings' => addslashes(serialize($settings)));
 		$update = $DB->update_string('exp_extensions', $data, "class = 'Analytics_panel'");
@@ -662,20 +662,43 @@ class Analytics_panel
 			'-pageviews', '',
 			date('Y-m-d', strtotime('31 days ago')),
 			date('Y-m-d', strtotime('yesterday')),
-			null, 10
+			null, 20
 		);
 		
 		$data['lastmonth']['content'] = array();
 		$i = 0;
+		
+		// Make a temporary array to hold page paths
+		// (for checking dupes resulting from www vs non-www hostnames)
+		$paths = array();
+		
 		foreach($topcontent->getResults() as $result)
 		{
-			$data['lastmonth']['content'][$i]['title'] = 
-			'<a href="http://'.$result->getHostname() . $result->getPagePath().'" target="_blank">'
-			.$result->getPagePath().
-			'</a>';
-			$data['lastmonth']['content'][$i]['count'] = number_format($result->getPageviews());
-			$i++;
+			// Do we already have this page path?
+			$dupe_key = array_search($result->getPagePath(), $paths);
+			if($dupe_key !== FALSE)
+			{
+				// Combine the pageviews of the dupes
+				$data['lastmonth']['content'][$dupe_key]['count'] = 
+				($result->getPageviews() + $data['lastmonth']['content'][$dupe_key]['count']);
+			}
+			else
+			{
+				$data['lastmonth']['content'][$i]['title'] = 
+				'<a href="http://'.$result->getHostname() . $result->getPagePath().'" target="_blank">'
+				.$result->getPagePath().
+				'</a>';
+				$data['lastmonth']['content'][$i]['count'] = $result->getPageviews();
+
+				// Store the page path at the same position so we can check for dupes
+				$paths[$i] = $result->getPagePath();
+
+				$i++;
+			}
 		}
+		
+		// Slice down to 10 results
+		$data['lastmonth']['content'] = array_slice($data['lastmonth']['content'], 0, 10);
 		
 		// Compile last month's top referrers
 		$referrers = new gapi($ga_user,$ga_password,$ga_auth_token);

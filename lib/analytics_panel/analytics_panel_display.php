@@ -53,7 +53,7 @@
 				<?php foreach($data['lastmonth']['content'] as $result): ?>
 				<tr>
 					<td class="analytics-top-content-row"><div><?php echo $result['title']; ?></div></td>
-					<td class="analytics-count"><?php echo $result['count']; ?></td>
+					<td class="analytics-count"><?php echo number_format($result['count']); ?></td>
 				</tr>
 				<?php endforeach; ?>
 				<tr>
