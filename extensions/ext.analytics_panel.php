@@ -68,6 +68,8 @@ class Analytics_panel
 			$DSP->body .= $DSP->qdiv('box success', $LANG->line($_GET['msg']));
 		}
 				
+		$DSP->body .= $DSP->heading($this->name.NBS.$DSP->qspan('defaultLight', $this->version), 1);				
+		
 		$DSP->body .= $DSP->form_open(
 			array(
 				'action' => 'C=admin'.AMP.'M=utilities'.AMP.'P=save_extension_settings',
@@ -81,7 +83,7 @@ class Analytics_panel
 		$DSP->body .=   $DSP->table('tableBorder', '0', '', '100%');
 		$DSP->body .=   $DSP->tr();
 		$DSP->body .=   $DSP->td('tableHeading', '', '2');
-		$DSP->body .=   $this->name;
+		$DSP->body .=   $LANG->line('extension_settings');
 		$DSP->body .=   $DSP->td_c();
 		$DSP->body .=   $DSP->tr_c();
 		
@@ -191,12 +193,14 @@ class Analytics_panel
 		$DSP->body .=   $DSP->td_c();
 		
 		$DSP->body .=   $DSP->td(($auth) ? 'tableCellTwo' : 'tableCellOne');
-		$DSP->body .= $DSP->input_select_header('member_groups[]', 'y', 5, '300px');
 		foreach($groups->result as $group)
 		{
-			$DSP->body .= $DSP->input_select_option($group['group_id'], $group['group_title'], (isset($current['member_groups']) && !empty($current['member_groups']) && in_array($group['group_id'], $current['member_groups'])) ? 1 : 0);
+			$DSP->body .= '<label style="margin-right: 8px;">';
+			$DSP->body .= $DSP->input_checkbox('member_groups[]', $group['group_id'], 
+				(isset($current['member_groups']) && !empty($current['member_groups']) 
+				&& in_array($group['group_id'], $current['member_groups'])) ? 1 : 0);
+			$DSP->body .= NBS.$group['group_title'].'</label>';
 		}
-		$DSP->body .= $DSP->input_select_footer();		
 		$DSP->body .=   $DSP->td_c();
 		$DSP->body .=   $DSP->tr_c();		
 					
