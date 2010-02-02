@@ -9,7 +9,7 @@ class Analytics_panel
 {
 	var $settings		= array();
 	var $name			= 'Google Analytics Panel';
-	var $version		= '1.1.4';
+	var $version		= '1.1.5';
 	var $description	= 'Display your Google Analytics stats on the control panel home page.';
 	var $settings_exist	= 'y';
 	var $docs_url		= 'http://github.com/amphibian/ext.analytics_panel.ee_addon';
@@ -216,7 +216,7 @@ class Analytics_panel
 		global $DB, $FNS, $PREFS, $REGX;
 		$site = $PREFS->ini('site_id');
 		
-		// $this->settings doesn't work here, so we use our won function
+		// $this->settings doesn't work here, so we use our own function
 		$settings = $this->get_settings();
         
 		// If we're posting a username and password,
@@ -248,13 +248,8 @@ class Analytics_panel
 		if(isset($_POST['profile']))
 		{
 			$settings[$site]['profile'] = $_POST['profile'];
-			
-			// Fetch and cache new data with this profile ID
-			$settings[$site]['cache'] = $this->fetch_stats(	
-				$settings[$site]['user'], 
-				base64_decode($settings[$site]['password']), 
-				$_POST['profile']
-			);
+			$settings[$site]['hourly_cache'] = '';
+			$settings[$site]['daily_cache'] = '';
 		}
 
 		$settings[$site]['member_groups'] = (isset($_POST['member_groups'])) ? $_POST['member_groups'] : array('1');
@@ -459,8 +454,6 @@ class Analytics_panel
 			th.analytics-count-type { color: #999; font-weight: normal; text-align: right; width: 25%; }
 			td.analytics-count { text-align: right; }
 			.analytics-inset td { border-bottom: 1px dotted #DDD; width: auto; }
-			td.analytics-top-content-row, td.analytics-top-referrer-row { word-wrap: break-word; }
-			td.analytics-top-content-row div { overflow:hidden; }
 			td.analytics-report-link { border-bottom: 0px; font-weight: bold; }
 			td.analytics-footer { background: #EEF4F9; border-top: 1px solid #DDD; }
 			</style>
@@ -479,7 +472,7 @@ class Analytics_panel
 		
 	function build_analytics_panel($method)
 	{						
-		global $DB, $DSP, $EXT, $LANG, $PREFS, $SESS;
+		global $DB, $DSP, $EXT, $LANG, $LOC, $PREFS, $SESS;
 		$r = ($EXT->last_call !== FALSE) ? $EXT->last_call : '';
 		
 		$site = $PREFS->ini('site_id');
@@ -501,56 +494,57 @@ class Analytics_panel
 			$ga_password = base64_decode($this->settings[$site]['password']);
 			$ga_profile_id = $this->settings[$site]['profile'];
 			
-			require_once(PATH_LIB.'analytics_panel/gapi.class.php');
-			
-			$today = new gapi($ga_user,$ga_password);
-			if($today->getAuthToken() != FALSE)
+			// Check to see if we have a hourly cache, and if it's still valid
+			if(isset($this->settings[$site]['hourly_cache']['cache_time']) && 
+				$LOC->set_localized_time() < strtotime('+60 minutes', $this->settings[$site]['hourly_cache']['cache_time']))
 			{
-				// This is the first call made, so save the auth token for use in subsequent calls
-				// (No need to re-authorize multiple times in one session.)
-				$ga_auth_token = $today->getAuthToken();
+				$today = $this->settings[$site]['hourly_cache'];
+				$hourly_cache = TRUE;
+			}
+			else
+			{
+				// We need to fetch our data and recreate the cache
+				$today = $this->fetch_hourly_stats($ga_user, $ga_password, $ga_profile_id);
+				$settings = $this->get_settings();
+				$settings[$site]['hourly_cache'] = $today;
 				
-				$today->requestReportData(
-					$ga_profile_id,
-					'date',
-					array('pageviews', 'visits', 'timeOnSite'),
-					'', '',
-					date('Y-m-d'),
-					date('Y-m-d')
-				);
+				$new_data = array('settings' => addslashes(serialize($settings)));
+				$update = $DB->update_string('exp_extensions', $new_data, "class = 'Analytics_panel'");
+				$DB->query($update);						
+			}
+
 				
-				// Check to see if we have a cache, and if it's still valid (refresh daily)
-				if(isset($this->settings[$site]['cache']) && $this->settings[$site]['cache']['cache_date'] == date('Y-m-d'))
-				{
-					$data = $this->settings[$site]['cache'];
-				}
-				else
-				{
-					// We need to fetch our data and recreate the cache
-					$data = $this->fetch_stats($ga_user, $ga_password, $ga_profile_id);
-					$settings = $this->get_settings();
-					$settings[$site]['cache'] = $data;
-					
-					$new_data = array('settings' => addslashes(serialize($settings)));
-					$update = $DB->update_string('exp_extensions', $new_data, "class = 'Analytics_panel'");
-					$DB->query($update);
-				}
-							
-				// No way I'm using the Display Class to build this whole thing
+			// Check to see if we have a daily cache, and if it's still valid
+			if(isset($this->settings[$site]['daily_cache']['cache_date']) && 
+				$this->settings[$site]['daily_cache']['cache_date'] == date('Y-m-d', $LOC->set_localized_time()))
+			{
+				$daily = $this->settings[$site]['daily_cache'];
+				$daily_cache = TRUE;
+			}
+			else
+			{
+				// We need to fetch our data and recreate the cache
+				$daily = $this->fetch_daily_stats($ga_user, $ga_password, $ga_profile_id);
+				$settings = $this->get_settings();
+				$settings[$site]['daily_cache'] = $daily;
+				
+				$new_data = array('settings' => addslashes(serialize($settings)));
+				$update = $DB->update_string('exp_extensions', $new_data, "class = 'Analytics_panel'");
+				$DB->query($update);
+			}
+			
+			if(isset($today) && isset($daily))
+			{				
 				ob_start();
 				include PATH_LIB.'analytics_panel/analytics_panel_display.php';
 				$template = ob_get_clean();
 				
-				$r .=
-				$DSP->td('default analytics-container-cell').
-				$template;
+				$r .= $DSP->td('default analytics-container-cell').$template;
 			}
 			else
 			{
 				// We couldn't fetch our account data for some reason
-				$r .= 
-				$DSP->td('tableCellTwo').
-				$LANG->line('trouble_connecting');
+				$r .= $DSP->td('tableCellTwo').$LANG->line('trouble_connecting');
 			}
 				
 			$r .=
@@ -570,10 +564,46 @@ class Analytics_panel
 	}   
 
 
-	function fetch_stats($ga_user, $ga_password, $ga_profile_id)
+	function fetch_hourly_stats($ga_user, $ga_password, $ga_profile_id)
 	{
+		global $LOC;
 		$data = array();
-		$data['cache_date'] = date('Y-m-d');					
+		$data['cache_time'] = $LOC->set_localized_time();					
+
+		require_once(PATH_LIB.'analytics_panel/gapi.class.php');
+		
+		$today = new gapi($ga_user,$ga_password);
+		$ga_auth_token = $today->getAuthToken();
+		$today->requestReportData(
+			$ga_profile_id,
+			array('date'),
+			array('pageviews','visits', 'timeOnSite'),
+			'','',
+			date('Y-m-d'),
+			date('Y-m-d')
+		);
+		
+		$data['visits'] = 
+		number_format($today->getVisits());
+		
+		$data['pageviews'] = 
+		number_format($today->getPageviews());
+		
+		$data['pages_per_visit'] = 
+		$this->analytics_avg_pages($today->getPageviews(), $today->getVisits());
+		
+		$data['avg_visit'] = 
+		$this->analytics_avg_visit($today->getTimeOnSite(), $today->getVisits());		
+
+		return $data;
+	}
+
+
+	function fetch_daily_stats($ga_user, $ga_password, $ga_profile_id)
+	{
+		global $LOC;
+		$data = array();
+		$data['cache_date'] = date('Y-m-d', $LOC->set_localized_time());					
 
 		require_once(PATH_LIB.'analytics_panel/gapi.class.php');
 		
@@ -688,9 +718,12 @@ class Analytics_panel
 			}
 			else
 			{
+				$url = (strlen($result->getPagePath()) > 30) ? 
+					substr($result->getPagePath(), 0, 30).'&hellip;' : 
+					$result->getPagePath();
 				$data['lastmonth']['content'][$i]['title'] = 
 				'<a href="http://'.$result->getHostname() . $result->getPagePath().'" target="_blank">'
-				.$result->getPagePath().
+				.$url.
 				'</a>';
 				$data['lastmonth']['content'][$i]['count'] = $result->getPageviews();
 
@@ -756,7 +789,7 @@ class Analytics_panel
 	
 	function analytics_sparkline($data_array, $metric)
 	{
-		$max = 0; $stats = '';
+		$max = 0; $stats = array();
 		
 		foreach($data_array as $result)
 		{
@@ -779,17 +812,12 @@ class Analytics_panel
 				case "newvisits":
 					$datapoint =  ($result->getNewVisits() > 0 && $result->getVisits() > 0) ? $result->getNewVisits() / $result->getVisits() : 0;
 					break;
-			}		
-
-			if($max < $datapoint)
-			{
-				$max = $datapoint;
 			}
-			$stats .= $datapoint . ',';
+			$max = ($max < $datapoint) ? $datapoint : $max;
+			$stats[] = $datapoint;
 		}
-		$stats = rtrim($stats, ',');
 		
-		return '<img src="http://chart.apis.google.com/chart?cht=ls&amp;chs=100x20&amp;chm=B,e6f2fa,0,0.0,0.0&amp;chco=0077cc&amp;chd=t:'.$stats.'&amp;chds=0,'.$max.'" alt="" />';
+		return '<img src="http://chart.apis.google.com/chart?cht=ls&amp;chs=100x20&amp;chm=B,e6f2fa,0,0.0,0.0&amp;chco=0077cc&amp;chd=t:'.implode(',',$stats).'&amp;chds=0,'.$max.'" alt="" />';
 	}		
 			
    
